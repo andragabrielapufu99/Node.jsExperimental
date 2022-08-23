@@ -6,8 +6,9 @@ var app = require('express')();
 
 const main = require('../routes/logs');
 
-app.use(cors());
-app.use('/api', main);
+// app.use(cors());
+// app.use('/api', main);
+app.use('/', main);
 
 const server = http.createServer(app);
 const io = require('socket.io')(server);
