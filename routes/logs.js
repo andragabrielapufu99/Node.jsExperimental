@@ -169,6 +169,92 @@ router.get('/plans/:id/camerapositions',async (req, res) => {
     }
 });
 
+var sensorsList = [];
+
+router.post('/add', async(req, res) => {
+    try {
+        // console.log(req.body.sensors);
+        // let s = req.body.sensors;
+        let s = req.body;
+        let sadd = [];
+        s.forEach(x => {
+            if(!sensorsList.includes(x)){
+                sensorsList.push(x);
+                sadd.push(x);
+            }
+        });
+        // res.status(200).send({"sensors": sadd});
+        res.status(200).send(sadd);
+    } catch (err) {
+        res.status(500).send('{"error" : "'+err+'"}');
+    }
+});
+
+router.post('/update', async(req, res) => {
+    try {
+        // let s = req.body.sensors;
+        let s = req.body;
+        let supd = [];
+        s.forEach((value) => {
+          let idx = sensorsList.findIndex((x) => x.id === value.id);
+          sensorsList[idx] = value;
+          supd.push(value);
+        });
+        // res.status(200).send({"sensors": supd});
+        res.status(200).send(supd);
+    } catch (err) {
+        res.status(500).send('{"error" : "'+err+'"}');
+    }
+});
+
+const checkEqualObj = (obj1, obj2) => {
+    let result = true;
+    Object.keys(obj1).forEach((k) => {
+        if(result) result = k in obj2 && (obj1[k] === obj2[k]);
+    });
+    return result;
+}
+
+const findPosArray = (obj, arr) => {
+    let idx = 0;
+    let pos = -1;
+    arr.forEach(x => {
+       if(pos === -1 && checkEqualObj(x, obj) && checkEqualObj(obj, x)) pos = idx;
+       idx = idx +1;
+    });
+    return pos;
+}
+
+router.post('/delete', async(req, res) => {
+    try {
+        // let s = req.body.sensors;
+        let s = req.body;
+        let sdel = [];
+        s.forEach(x => {
+            let pos = findPosArray(x, sensorsList);
+            if(pos !== -1){
+                sensorsList.splice(pos, 1);
+                sdel.push(x);
+            }
+        });
+        // res.status(200).send({"sensors": sdel});
+        res.status(200).send(sdel);
+    } catch (err) {
+        res.status(500).send('{"error" : "'+err+'"}');
+    }
+});
+
+router.get('/sensors', async(req, res) => {
+    try {
+        // res.status(200).send({"sensors": sensorsList});
+        res.status(200).send(sensorsList);
+    } catch (err) {
+        res.status(500).send('{"error" : "'+err+'"}');
+    }
+});
+
+
+
 
 
 module.exports = router ;

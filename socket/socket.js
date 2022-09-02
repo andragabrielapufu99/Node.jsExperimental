@@ -8,27 +8,39 @@ const main = require('../routes/logs');
 
 // app.use(cors());
 // app.use('/api', main);
+
 app.use('/', main);
 
 const server = http.createServer(app);
 const io = require('socket.io')(server);
+const socketStatusIo = io.of('/status');
 
 var server_port = process.env.YOUR_PORT || process.env.PORT || 3001;
 
-let clients = [];
+let clientsEvent = [];
+let clientsStatus = [];
 
-const broadcast = async (message) => {
+const broadcast = async (message, clients) => {
     clients.forEach((client) => {
         client.send(JSON.stringify(message));
     });
 };
 
-io.on('connection', (socket)=> {
+io.on('connection', (socket) => {
     console.log('Connection');
-    if(!clients.includes(socket)) clients.push(socket);
+    if(!clientsEvent.includes(socket)) clientsEvent.push(socket);
     socket.on('close', () => {
         console.log('Socket close');
-        clients.splice(clients.indexOf(socket), 1);
+        clientsEvent.splice(clientsEvent.indexOf(socket), 1);
+    });
+});
+
+socketStatusIo.on('connection', (socket) => {
+    console.log('Connection Status');
+    if(!clientsStatus.includes(socket)) clientsStatus.push(socket);
+    socket.on('close', () => {
+        console.log('Status Socket close');
+        clientsStatus.splice(clientsStatus.indexOf(socket), 1);
     });
 });
 
@@ -66,13 +78,81 @@ function getDateString() {
 var eventId = -1;
 var max_events = 5000;
 
+getRandomItem = (arr) => {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+getRandomNumber = (vmax) => {
+    return Math.floor(Math.random() * vmax);
+}
+
+eventTypes = ['ALARM', 'RESTORE'];
+mapIds = ['outreal1id', 'inreal1id', 'WorldMap'];
+
+sensorIds = {
+    'outreal1id': {
+        'maxcount': [37, 8, 5],
+        'types': ['FPS', 'geo', 'cam']
+    },
+    'inreal1id': {
+        'maxcount': [2, 3, 2, 2, 1],
+        'types': ['FPS', 'cam', 'smoke', 'pir', 'ac']
+    },
+    // 'Plan3DJoita': {
+    //     'maxcount': [1,3,2,2,1],
+    //     'types': ['FPS', 'cam', 'smoke', 'pir', 'ac']
+    // },
+    'WorldMap': {
+        'maxcount': [4],
+        'types': ['FPS']
+    },
+}
+
+function generateIdFPS() {
+    let id = '';
+    let zone = getRandomNumber(2) + 1;
+    let segm;
+    let side;
+    switch (zone) {
+        case 1:
+            segm = getRandomNumber(24);
+            side = getRandomItem(['', 'l', 'r']);
+            id = `idj${zone}s${segm}${side}`;
+            break;
+        case 2:
+            segm = getRandomNumber(12);
+            side = getRandomItem(['', 'l', 'r']);
+            id = `idj${zone}s${segm}${side}`;
+            break;
+        default:
+            break;
+    }
+    return id;
+}
+
 async function createEvent() {
     return new Promise(async function (resolve, reject) {
         if(eventId === -1) eventId = await store.getLastId();
-        let message = {"zones": [ { "system": "System Schrack", "sensorId": "schrack0", "mapId": "lvl0", "siteId" : "tomesti", "locationId" : "is" }],
-            "event": "NORMAL",
-            "eventType": "RESTORE",
-            "message": "Open Alarm",
+        let eventType = getRandomItem(eventTypes);
+        let mapId = getRandomItem(mapIds);
+        mapId = 'outreal1id';
+        let rtype = getRandomItem(sensorIds[mapId].types);
+        rtype = 'FPS';
+        let idx = sensorIds[mapId].types.indexOf(rtype);
+        let ridx = getRandomNumber(sensorIds[mapId].maxcount[idx]) + 1;
+        let rid = `${rtype}${ridx}`;
+        if(rtype === 'FPS') rid = generateIdFPS();
+        let system = '';
+        if(rtype === 'FPS') system = 'MAGUS FPS System';
+        else if(rtype === 'geo') system = 'Magus GeoPS System';
+        else if(rtype === 'cam') system = 'cctv';
+        else if(rtype === 'smoke') system = 'Smoke Detection System';
+        else if(rtype === 'pir') system = 'PIR Detectors';
+        else if(rtype === 'ac') system = 'Access Control';
+        let message = {"zones": [ { "system": system, "sensorId": rid, "mapId": mapId, "siteId" : "joitareal1id", "locationId" : "joitarealid" }],
+            "event": eventType,
+            "eventType": eventType,
+            "message": `FPS ${eventType}`,
             "date" : getDateString(),
             "eventId": eventId+1
         };
@@ -103,15 +183,15 @@ async function sendMessage() {
     //     socket.send(message);
     // }
     let message = await createEvent();
-    await broadcast(message);
+    await broadcast(message, clientsEvent);
 }
 
-setInterval(sendMessage, 30*1000); // 10 secunde
+// setInterval(sendMessage, 30*1000); // 10 secunde
 
 async function sendStatusMessage() {
     for(var i=1; i<=6; i++){
         let message = createStatus(i);
-        await broadcast(message);
+        await broadcast(message, clientsStatus);
     }
 }
 
