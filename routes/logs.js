@@ -169,12 +169,14 @@ router.get('/plans/:id/camerapositions',async (req, res) => {
     }
 });
 
-var sensorsList = [];
+// var sensorsList = [];
 
 router.post('/add', async(req, res) => {
+    console.log('ADD SENSORS');
     try {
         // console.log(req.body.sensors);
         // let s = req.body.sensors;
+        let sensorsList = await store.readSensors();
         let s = req.body;
         let sadd = [];
         s.forEach(x => {
@@ -183,6 +185,7 @@ router.post('/add', async(req, res) => {
                 sadd.push(x);
             }
         });
+        await store.writeSensors(sensorsList);
         // res.status(200).send({"sensors": sadd});
         res.status(200).send(sadd);
     } catch (err) {
@@ -191,8 +194,10 @@ router.post('/add', async(req, res) => {
 });
 
 router.post('/update', async(req, res) => {
+    console.log('UPDATE SENSORS');
     try {
         // let s = req.body.sensors;
+        let sensorsList = await store.readSensors();
         let s = req.body;
         let supd = [];
         s.forEach((value) => {
@@ -201,6 +206,7 @@ router.post('/update', async(req, res) => {
           supd.push(value);
         });
         // res.status(200).send({"sensors": supd});
+        await store.writeSensors(sensorsList);
         res.status(200).send(supd);
     } catch (err) {
         res.status(500).send('{"error" : "'+err+'"}');
@@ -226,8 +232,10 @@ const findPosArray = (obj, arr) => {
 }
 
 router.post('/delete', async(req, res) => {
+    console.log('DELETE SENSORS');
     try {
         // let s = req.body.sensors;
+        let sensorsList = await store.readSensors();
         let s = req.body;
         let sdel = [];
         s.forEach(x => {
@@ -238,6 +246,7 @@ router.post('/delete', async(req, res) => {
             }
         });
         // res.status(200).send({"sensors": sdel});
+        await store.writeSensors(sensorsList);
         res.status(200).send(sdel);
     } catch (err) {
         res.status(500).send('{"error" : "'+err+'"}');
@@ -245,8 +254,10 @@ router.post('/delete', async(req, res) => {
 });
 
 router.get('/sensors', async(req, res) => {
+    console.log('GET SENSORS');
     try {
         // res.status(200).send({"sensors": sensorsList});
+        let sensorsList = await store.readSensors();
         res.status(200).send(sensorsList);
     } catch (err) {
         res.status(500).send('{"error" : "'+err+'"}');

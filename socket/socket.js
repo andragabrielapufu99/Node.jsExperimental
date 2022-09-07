@@ -86,12 +86,12 @@ getRandomNumber = (vmax) => {
     return Math.floor(Math.random() * vmax);
 }
 
-eventTypes = ['ALARM', 'RESTORE'];
-mapIds = ['outreal1id', 'inreal1id', 'WorldMap'];
+eventTypes = ['ALARM', 'RESTORE', 'FAULT'];
+mapIds = ['outreal1id', 'inreal1id', 'WorldMap', 'valiza'];
 
 sensorIds = {
     'outreal1id': {
-        'maxcount': [37, 8, 5],
+        'maxcount': [36, 8, 5],
         'types': ['FPS', 'geo', 'cam']
     },
     'inreal1id': {
@@ -106,6 +106,10 @@ sensorIds = {
         'maxcount': [4],
         'types': ['FPS']
     },
+    'valiza': {
+        'maxcount': [1, 1, 1, 1, 1, 1, 1],
+        'types': ['FPS','geo', 'cam', 'smoke', 'pir', 'ac', 'bar']
+    }
 }
 
 function generateIdFPS() {
@@ -135,13 +139,16 @@ async function createEvent() {
         if(eventId === -1) eventId = await store.getLastId();
         let eventType = getRandomItem(eventTypes);
         let mapId = getRandomItem(mapIds);
-        mapId = 'outreal1id';
+        // mapId = 'valiza';
         let rtype = getRandomItem(sensorIds[mapId].types);
-        rtype = 'FPS';
+        // rtype = 'cam';
         let idx = sensorIds[mapId].types.indexOf(rtype);
-        let ridx = getRandomNumber(sensorIds[mapId].maxcount[idx]) + 1;
+        let ridx = getRandomNumber(sensorIds[mapId].maxcount[idx]);
         let rid = `${rtype}${ridx}`;
-        if(rtype === 'FPS') rid = generateIdFPS();
+        if(rtype === 'FPS') {
+            rid = generateIdFPS();
+            if(mapId === 'valiza') rid = 'idj9s0';
+        }
         let system = '';
         if(rtype === 'FPS') system = 'MAGUS FPS System';
         else if(rtype === 'geo') system = 'Magus GeoPS System';
@@ -149,10 +156,11 @@ async function createEvent() {
         else if(rtype === 'smoke') system = 'Smoke Detection System';
         else if(rtype === 'pir') system = 'PIR Detectors';
         else if(rtype === 'ac') system = 'Access Control';
+        else if(rtype === 'bar') system = 'Bariera'
         let message = {"zones": [ { "system": system, "sensorId": rid, "mapId": mapId, "siteId" : "joitareal1id", "locationId" : "joitarealid" }],
             "event": eventType,
             "eventType": eventType,
-            "message": `FPS ${eventType}`,
+            "message": `${system} ${eventType}`,
             "date" : getDateString(),
             "eventId": eventId+1
         };
@@ -186,7 +194,7 @@ async function sendMessage() {
     await broadcast(message, clientsEvent);
 }
 
-// setInterval(sendMessage, 30*1000); // 10 secunde
+setInterval(sendMessage, 30*1000); // 10 secunde
 
 async function sendStatusMessage() {
     for(var i=1; i<=6; i++){

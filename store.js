@@ -63,8 +63,42 @@ async function clear() {
 
 // clear();
 
+async function readSensors() {
+    return new Promise(function (resolve, reject){
+        fs.readFile('./sensors.json', 'utf8', (err, data) => {
+
+            if (err) {
+                console.log(`Error sensors reading file from disk: ${err}`);
+                reject(err);
+            } else {
+                if(data !== '') {
+                    let sensors = JSON.parse(data);
+                    resolve(sensors);
+                }
+            }
+
+        });
+    });
+}
+
+async function writeSensors(sensors) {
+    return new Promise(function (resolve, reject) {
+        fs.writeFile('./sensors.json', JSON.stringify(sensors), 'utf8', (err) => {
+            if (err) {
+                console.log(`Error writing file: ${err}`);
+                reject(err);
+            } else {
+                console.log(`File for sensors is written successfully!`);
+                resolve();
+            }
+        });
+    });
+
+}
 module.exports = {
     saveEvent,
     getEvents,
-    getLastId
+    getLastId,
+    readSensors,
+    writeSensors
 }
