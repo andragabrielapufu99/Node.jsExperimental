@@ -225,7 +225,8 @@ const findPosArray = (obj, arr) => {
     let idx = 0;
     let pos = -1;
     arr.forEach(x => {
-       if(pos === -1 && checkEqualObj(x, obj) && checkEqualObj(obj, x)) pos = idx;
+       // if(pos === -1 && checkEqualObj(x, obj) && checkEqualObj(obj, x)) pos = idx;
+        if(x.id === obj.id) pos = idx;
        idx = idx +1;
     });
     return pos;
@@ -259,6 +260,24 @@ router.get('/sensors', async(req, res) => {
         // res.status(200).send({"sensors": sensorsList});
         let sensorsList = await store.readSensors();
         res.status(200).send(sensorsList);
+    } catch (err) {
+        res.status(500).send('{"error" : "'+err+'"}');
+    }
+});
+
+router.get('/sensors/:plan_id', async(req, res) => {
+    console.log('GET SENSORS');
+    try {
+        let plan_id = req.params.plan_id;
+        // res.status(200).send({"sensors": sensorsList});
+        let sensorsList = await store.readSensors();
+        let planSensorList = [];
+        for(let index=0; index<sensorsList.length; index++){
+            if('plan_id' in sensorsList[index] && sensorsList[index].plan_id === plan_id){
+                planSensorList.push(sensorsList[index]);
+            }
+        }
+        res.status(200).send(planSensorList);
     } catch (err) {
         res.status(500).send('{"error" : "'+err+'"}');
     }
