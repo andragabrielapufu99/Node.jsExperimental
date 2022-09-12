@@ -87,77 +87,22 @@ getRandomNumber = (vmax) => {
 }
 
 eventTypes = ['ALARM', 'RESTORE', 'FAULT'];
-mapIds = ['outreal1id', 'inreal1id', 'WorldMap', 'valiza'];
-
-sensorIds = {
-    'outreal1id': {
-        'maxcount': [36, 8, 5],
-        'types': ['FPS', 'geo', 'cam']
-    },
-    'inreal1id': {
-        'maxcount': [2, 3, 2, 2, 1],
-        'types': ['FPS', 'cam', 'smoke', 'pir', 'ac']
-    },
-    // 'Plan3DJoita': {
-    //     'maxcount': [1,3,2,2,1],
-    //     'types': ['FPS', 'cam', 'smoke', 'pir', 'ac']
-    // },
-    'WorldMap': {
-        'maxcount': [4],
-        'types': ['FPS']
-    },
-    'valiza': {
-        'maxcount': [1, 1, 1, 1, 1, 1, 1],
-        'types': ['FPS','geo', 'cam', 'smoke', 'pir', 'ac', 'bar']
-    }
-}
-
-function generateIdFPS() {
-    let id = '';
-    let zone = getRandomNumber(2) + 1;
-    let segm;
-    let side;
-    switch (zone) {
-        case 1:
-            segm = getRandomNumber(24);
-            side = getRandomItem(['', 'l', 'r']);
-            id = `idj${zone}s${segm}${side}`;
-            break;
-        case 2:
-            segm = getRandomNumber(12);
-            side = getRandomItem(['', 'l', 'r']);
-            id = `idj${zone}s${segm}${side}`;
-            break;
-        default:
-            break;
-    }
-    return id;
-}
 
 async function createEvent() {
     return new Promise(async function (resolve, reject) {
         if(eventId === -1) eventId = await store.getLastId();
         let eventType = getRandomItem(eventTypes);
-        let mapId = getRandomItem(mapIds);
-        // mapId = 'valiza';
-        let rtype = getRandomItem(sensorIds[mapId].types);
-        // rtype = 'cam';
-        let idx = sensorIds[mapId].types.indexOf(rtype);
-        let ridx = getRandomNumber(sensorIds[mapId].maxcount[idx]);
-        let rid = `${rtype}${ridx}`;
-        if(rtype === 'FPS') {
-            rid = generateIdFPS();
-            if(mapId === 'valiza') rid = 'idj9s0';
-        }
+        let sensors = await store.readSensors();
+        let rsensor = getRandomItem(sensors);
         let system = '';
-        if(rtype === 'FPS') system = 'MAGUS FPS System';
-        else if(rtype === 'geo') system = 'Magus GeoPS System';
-        else if(rtype === 'cam') system = 'cctv';
-        else if(rtype === 'smoke') system = 'Smoke Detection System';
-        else if(rtype === 'pir') system = 'PIR Detectors';
-        else if(rtype === 'ac') system = 'Access Control';
-        else if(rtype === 'bar') system = 'Bariera'
-        let message = {"zones": [ { "system": system, "sensorId": rid, "mapId": mapId, "siteId" : "joitareal1id", "locationId" : "joitarealid" }],
+        if(rsensor.type === 'fps') system = 'MAGUS FPS System';
+        else if(rsensor.type === 'geops') system = 'Magus GeoPS System';
+        else if(rsensor.type === 'cctv') system = 'cctv';
+        else if(rsensor.type === 'smoke') system = 'Smoke Detection System';
+        else if(rsensor.type === 'pir') system = 'PIR Detectors';
+        else if(rsensor.type === 'accessControl') system = 'Access Control';
+        else if(rsensor.type === 'barrier') system = 'Bariera'
+        let message = {"zones": [ { "system": system, "sensorId": rsensor.id, "mapId": rsensor.plan_id, "siteId" : "joitareal1id", "locationId" : "joitarealid" }],
             "event": eventType,
             "eventType": eventType,
             "message": `${system} ${eventType}`,

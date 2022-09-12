@@ -2,6 +2,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const store = require('../store');
 const router = express.Router();
+const mjpeg = require('mp4-mjpeg');
+const fs = require('fs');
 router.use(bodyParser.urlencoded({
     extended: true,
 }));
@@ -283,7 +285,46 @@ router.get('/sensors/:plan_id', async(req, res) => {
     }
 });
 
+router.get('/streaming', async(req, res) => {
+    // starting a video file
+    const imageAsDataURL = 'http://192.168.60.14:10090/video31.mjpg';
+    mjpeg({ fileName: "file.mp4" })
+        .then( (recorder) => {
 
+            // append a JPEG image as a data URL to the video
+            recorder.appendImageDataUrl( imageAsDataURL )
+                .then( () => {
+                    // image added
+                })
+                .catch( (error) => {
+                    // something bad happened
+                })
+
+            // all the images added ?
+            // let finalize the MP4 file to make it playable
+            recorder.finalize()
+                .then( () => {
+                    // MP4 video file is ready
+                    fs.readFile('file.mp4', 'utf8', (err, data) => {
+
+                        if (err) {
+                            console.log(`Error sensors reading file from disk: ${err}`);
+                            res.status(500).send('{"error" : "'+err+'"}');
+                        } else {
+                            res.status(200).send(data);
+                        }
+
+                    });
+                })
+                .catch( (error) => {
+                // too bad
+            })
+
+        })
+        .catch( (error) => {
+            // could not create the file
+        })
+});
 
 
 
