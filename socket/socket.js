@@ -2,6 +2,8 @@ const cors = require('cors');
 const WebSocket = require('ws');
 const http = require('http');
 const store = require('../store');
+const EventEmitter = require('events');
+
 var app = require('express')();
 
 const main = require('../routes/logs');
@@ -9,7 +11,7 @@ const main = require('../routes/logs');
 // app.use(cors());
 // app.use('/api', main);
 
-app.use('/', main);
+app.use('/', main.router);
 
 const server = http.createServer(app);
 const io = require('socket.io')(server);
@@ -19,6 +21,14 @@ var server_port = process.env.YOUR_PORT || process.env.PORT || 3001;
 
 let clientsEvent = [];
 let clientsStatus = [];
+
+let emitter = new EventEmitter();
+
+main.setEmitter(emitter);
+emitter.on('message', async (message) => {
+    console.log(message);
+    await sendMessage2(message);
+})
 
 const broadcast = async (message, clients) => {
     clients.forEach((client) => {
@@ -139,7 +149,12 @@ async function sendMessage() {
     await broadcast(message, clientsEvent);
 }
 
-setInterval(sendMessage, 30*1000); // 10 secunde
+async function sendMessage2(message) {
+    eventId += 1;
+    await broadcast(message, clientsEvent);
+}
+
+// setInterval(sendMessage, 30*1000); // 10 secunde
 
 async function sendStatusMessage() {
     for(var i=1; i<=6; i++){
@@ -150,6 +165,9 @@ async function sendStatusMessage() {
 
 setInterval(sendStatusMessage, 65*1000); // 1 minut
 
+module.exports = {sendMessage2};
+
 server.listen(server_port, () => {
     console.log("Started on : "+ server_port);
 });
+

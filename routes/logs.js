@@ -10,6 +10,12 @@ router.use(bodyParser.json());
 
 eventId = 0;
 
+var emitter;
+
+function setEmitter(e) {
+    emitter = e;
+}
+
 function getDateString() {
     let dateNow = new Date();
     return dateNow.getFullYear() + "-" +
@@ -283,4 +289,48 @@ router.get('/sensors/:plan_id', async(req, res) => {
     }
 });
 
-module.exports = router ;
+async function createEvent(eventType, sensorId, plan_id) {
+    return new Promise(async function (resolve, reject) {
+        let eventId = await store.getLastId();
+        let sensors = await store.readSensors();
+        let sid = sensorId;
+        if(sid.endsWith('l') || sid.endsWith('r')) sid = sid.slice(0, sid.length-1);
+        let rsensor = sensors.find(s => s.id === sid && s.plan_id === plan_id);
+        if(!rsensor) reject(rsensor);
+        let system = '';
+        if(rsensor.type === 'fps') system = 'MAGUS FPS System';
+        else if(rsensor.type === 'geops') system = 'Magus GeoPS System';
+        else if(rsensor.type === 'cctv') system = 'cctv';
+        else if(rsensor.type === 'smoke') system = 'Smoke Detection System';
+        else if(rsensor.type === 'pir') system = 'PIR Detectors';
+        else if(rsensor.type === 'accessControl') system = 'Access Control';
+        else if(rsensor.type === 'barrier') system = 'Bariera'
+        let message = {"zones": [ { "system": system, "sensorId": sensorId, "mapId": rsensor.plan_id, "siteId" : "joitareal1id", "locationId" : "joitarealid" }],
+            "event": eventType,
+            "eventType": eventType,
+            "message": `${system} ${eventType}`,
+            "date" : getDateString(),
+            "eventId": eventId+1
+        };
+        await store.saveEvent(message);
+        resolve(message);
+    });
+}
+
+router.post('/sendEvent', async(req, res) => {
+    try {
+        // let s = req.body.sensors;
+        let eventType = req.body.eventType;
+        let sensorId = req.body.sensorId;
+        let plan_id = req.body.plan_id;
+        let message = await createEvent(eventType, sensorId, plan_id);
+        if(emitter){
+            emitter.emit('message', message);
+        }
+        res.status(200).send(message);
+    } catch (err) {
+        res.status(500).send('{"error" : "'+err+'"}');
+    }
+});
+
+module.exports = {router, setEmitter };
