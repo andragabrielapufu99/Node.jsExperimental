@@ -1,16 +1,18 @@
 const cors = require('cors');
+const path = require('path');
 const WebSocket = require('ws');
 const http = require('http');
 const store = require('../store');
 const EventEmitter = require('events');
-
-var app = require('express')();
+const express = require('express');
+var app = express();
 
 const main = require('../routes/logs');
 
 // app.use(cors());
 // app.use('/api', main);
 
+app.use(express.static(path.join(__dirname, '../dist')));
 app.use('/', main.router);
 
 const server = http.createServer(app);

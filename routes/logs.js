@@ -1,12 +1,28 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const store = require('../store');
+const multer = require('multer');
+const fs = require('fs');
+const http = require("http")
+
 const router = express.Router();
 router.use(bodyParser.urlencoded({
     extended: true,
 }));
 
 router.use(bodyParser.json());
+
+const storage = multer.diskStorage({
+    destination: function(req,file,cb){
+        cb(null,'./data');
+    },
+    filename: function(req,file,cb){
+        cb(null,`${Date.now()}_${file.originalname}`);
+    }
+});
+
+
+const upload = multer({ storage:storage });
 
 eventId = 0;
 
@@ -323,6 +339,136 @@ router.post('/sendEvent', async(req, res) => {
         let eventType = req.body.eventType;
         let sensorId = req.body.sensorId;
         let plan_id = req.body.plan_id;
+        let message = await createEvent(eventType, sensorId, plan_id);
+        if(emitter){
+            emitter.emit('message', message);
+        }
+        res.status(200).send(message);
+    } catch (err) {
+        res.status(500).send('{"error" : "'+err+'"}');
+    }
+});
+
+router.get('/plans', async(req, res) => {
+    console.log('GET PLANS');
+    try {
+        // let plans = [
+        //     {
+        //         'id': 'WorldMap',
+        //         'name': 'World Map',
+        //         'imageUrl': '',
+        //         'isMap': true
+        //     },
+        //     {
+        //         'id': 'outreal1id',
+        //         'name': 'OutReal',
+        //         'imageUrl': '../../../../../assets/img/plans/downloa.png',
+        //         'isMap': false
+        //     },
+        //     {
+        //         'id': 'inreal1id',
+        //         'name': 'InReal',
+        //         'imageUrl': '../../../../../assets/img/plans/download.png',
+        //         'isMap': false
+        //     },
+        //     {
+        //         'id': 'Plan3DJoita',
+        //         'name': 'Plan 3D Joita',
+        //         'imageUrl': '../../../../../assets/img/plans/Plan 3d Joita.jpg',
+        //         'isMap': false
+        //     },
+        //     {
+        //         'id': 'valiza',
+        //         'name': 'Valiza',
+        //         'imageUrl': '../../../../../assets/img/plans/canvas plans/valiza.png',
+        //         'isMap': false
+        //     }
+        // ];
+        // res.status(200).send({"sensors": sensorsList});
+        let plans = await store.readPlans();
+        res.status(200).send(plans);
+    } catch (err) {
+        res.status(500).send('{"error" : "'+err+'"}');
+    }
+});
+
+router.post('/plans/add', upload.single('file'), async(req, res) => {
+    console.log('ADD PLAN');
+    try {
+        // console.log(req.body.sensors);
+        // let s = req.body.sensors;
+        console.log(req);
+        let image = req.file;
+        let plan = JSON.parse(req.body.plan);
+        let plans = await store.readPlans();
+        plan['imagePath'] = `D:\\PERSONAL PROJECTS\\Node.jsExperimental\\data\\${image.filename}`;
+        plans.push(plan);
+        await store.writePlans(plans);
+        console.log(plan);
+        // console.log(body);
+        res.status(200).send();
+    } catch (err) {
+        res.status(500).send('{"error" : "'+err+'"}');
+    }
+});
+
+router.get('/plans/img/:plan_id', async(req, res) => {
+    console.log('GET IMG PLAN');
+    try {
+        let plan_id = req.params.plan_id;
+        let plans = await store.readPlans();
+        let plan;
+        for(let index=0; index<plans.length; index++){
+            if(plans[index].id === plan_id){
+                plan = plans[index];
+                break;
+            }
+        }
+        if(plan) res.sendFile(plan.imagePath);
+        else res.status(404).send('not found');
+    } catch (err) {
+        res.status(500).send('{"error" : "'+err+'"}');
+    }
+});
+
+router.get('/restore/:sensor_id/:plan_id', async(req, res) => {
+    try {
+        // let s = req.body.sensors;
+        let eventType = 'RESTORE';
+        let sensorId = req.params.sensor_id;
+        let plan_id = req.params.plan_id;
+        let message = await createEvent(eventType, sensorId, plan_id);
+        if(emitter){
+            emitter.emit('message', message);
+        }
+        res.status(200).send(message);
+    } catch (err) {
+        res.status(500).send('{"error" : "'+err+'"}');
+    }
+});
+
+router.get('/alarm/:sensor_id/:plan_id', async(req, res) => {
+    try {
+        // let s = req.body.sensors;
+        let eventType = 'ALARM';
+        let sensorId = req.params.sensor_id;
+        let plan_id = req.params.plan_id;
+        let message = await createEvent(eventType, sensorId, plan_id);
+        if(emitter){
+            emitter.emit('message', message);
+        }
+        res.status(200).send(message);
+    } catch (err) {
+        res.status(500).send('{"error" : "'+err+'"}');
+    }
+});
+
+router.get('/fault/:sensor_id/:plan_id', async(req, res) => {
+    try {
+        // let s = req.body.sensors;
+        let eventType = 'FAULT';
+        let sensorId = req.params.sensor_id;
+        let plan_id = req.params.plan_id;
         let message = await createEvent(eventType, sensorId, plan_id);
         if(emitter){
             emitter.emit('message', message);
